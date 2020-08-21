@@ -71,53 +71,84 @@ function buildMenu(task, base=root){
 	let selection = $('#selection');
 	let menu2 = $('#dropdownMenu2');
 	let htmlString;
+
+	/*Construct initial menu, including
+	 * checks for whether files are active
+	 */
 	for (let key in dict){
-		if (dict[key].toString().slice(-4) == '.wav'){
-			if (task.trim() in ddDict && ddDict[task.trim()].indexOf(dict[key].toString().trim())!=-1){
-				htmlString = "<div class=\"voiceFile selectedFile\">".concat(key).concat(
-				"<div class=\"soundBtn\"><img src=\"images/playBtn.jpg\"></img></div>").concat("</div>");
+		if (wavCheck(dict, key)){
+			if (ddDictCheck(task, dict, key)){
+				htmlString = "<div class=\"voiceFile selectedFile\">"
+					.concat(key)
+					.concat("<div class=\"soundBtn\"><img src=\"images/playBtn.jpg\"></img></div>")
+					.concat("</div>");
 			} else {
-				htmlString = "<div class=\"voiceFile\">".concat(key).concat(
-					"<div class=\"soundBtn\"><img src=\"images/playBtn.jpg\"></img></div>").concat("</div>");
+				htmlString = "<div class=\"voiceFile\">"
+					.concat(key)
+					.concat(
+					"<div class=\"soundBtn\"><img src=\"images/playBtn.jpg\"></img></div>")
+					.concat("</div>");
 			}
 			buttons.append(htmlString);
 		} 
 		else {
 			checkForActive(task, dict[key]).then((res) => {
 				if (res){
-					htmlString = "<div class=\"selectionButton\" style=\"border-color: blue;\">".concat(key).concat("</div>");
+					htmlString = "<div class=\"selectionButton\" style=\"border-color: blue;\">"
+						.concat(key)
+						.concat("</div>");
 				} else {
-					htmlString = "<div class=\"selectionButton\">".concat(key).concat("</div>");
+					htmlString = "<div class=\"selectionButton\">"
+						.concat(key)
+						.concat("</div>");
 				}
 				buttons.append(htmlString);
 			});
 		}
 	}
 
+
+	/*****************
+	Event listeners
+	****************/
+
+	//Clicks within menu items
 	buttons.toggle();
 	buttons.unbind('click');
 	buttons.on('click', (button) => {
+
+		//Next layer down, recursively creates next menu
 		if (button.target.className=='selectionButton'){
 			let category = button.target.textContent;
 			buttons.contents().remove();
 			buttons.toggle();
 			buildMenu(task, new menuItem(category, base, dict[category]));
+
+		//Sound button for sampling
 		} else if ($(button.target).is('img')){
 			let soundFile = dict[button.target.parentNode.parentNode.textContent];
 			let audio = new Audio("DDVO/".concat(soundFile));
 			audio.play();
+
+		//File that has been selected
 		} else if ($(button.target).hasClass("selectedFile")) {
 			console.log(button.target.textContent);
 			removeFile(task, dict[button.target.textContent]);
 			$(button.target).removeClass('selectedFile');
+
+		//File that has not been selected
 		} else if ($(button.target).hasClass("voiceFile")){
 			addFile(task, dict[button.target.textContent]);
 			$(button.target).addClass('selectedFile');
 		}
 	});
+
+	//Changing the centered task
 	selection.unbind('click');
 	selection.on('click', (evt) => {
 		fillMenu(menu2);
+
+		//Check for new task selection
 		menu2.one("click", (task) => {
 			console.log('clicked');
 			if (task.target.id!="dropdownMenu") {
@@ -136,6 +167,7 @@ function buildMenu(task, base=root){
 		});
 	});
 
+	//Back button
 	back.unbind('click');
 	if (prev){
 		back.on('click', (button) => {
